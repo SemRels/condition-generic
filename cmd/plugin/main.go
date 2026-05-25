@@ -1,25 +1,22 @@
-// SPDX-License-Identifier: Apache-2.0
-// SPDX-FileCopyrightText: 2026 The plugin-template Authors
-
 package main
 
 import (
-	"context"
-	"log"
+	"fmt"
+	"io"
 	"os"
 
-	grpcserver "github.com/SemRels/condition-generic/internal/grpc"
-	semrelplugin "github.com/SemRels/condition-generic/internal/plugin"
+	plugin "github.com/SemRels/condition-generic/internal/plugin"
 )
 
-func main() {
-	provider := semrelplugin.NewProvider("condition-generic")
-	server := grpcserver.NewProviderServer(provider)
-
-	if _, err := server.Health(context.Background()); err != nil {
-		log.Printf("plugin health check failed: %v", err)
-		os.Exit(1)
+func run(getenv func(string) string, stderr io.Writer) int {
+	c := plugin.NewWithEnv(getenv)
+	if err := c.Check(); err != nil {
+		fmt.Fprintln(stderr, "condition-generic:", err)
+		return 1
 	}
+	return 0
+}
 
-	log.Printf("%s plugin template is ready", provider.Name())
+func main() {
+	os.Exit(run(os.Getenv, os.Stderr))
 }
