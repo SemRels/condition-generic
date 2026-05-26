@@ -1,43 +1,39 @@
 # condition-generic
 
-Generic CI condition plugin for Semantic Release.
+Runs a custom shell command and passes only when the command exits successfully.
 
-Validates generic local or self-hosted CI runtime conditions before a Semantic Release is executed.
+This plugin is distributed as the standalone Go binary `semrel-plugin-condition-generic`. Semrel executes the binary as a subprocess, provides plugin configuration through `SEMREL_PLUGIN_*` environment variables, provides release context through `SEMREL_*` environment variables, reads standard output, and treats exit code `0` as success and any non-zero exit code as failure. Install the binary in `~/.semrel/plugins/` or anywhere on your `$PATH`.
 
-## Documentation
+## Installation
 
-- Docs (coming soon): <https://github.com/SemRels/semrel/tree/main/docs/plugins/condition-generic>
-- Template source: <https://github.com/SemRels/plugin-template>
+```bash
+go install github.com/SemRels/condition-generic/cmd/plugin@latest
+```
 
-## Repository Layout
+## Configuration
 
-`	ext
-cmd/plugin/              Plugin entry point
-internal/plugin/         Business logic scaffold
-internal/grpc/           gRPC transport scaffold
-proto/v1                 Symlink to the SemRel protobuf contract
-.github/workflows/       CI, release, and security automation
-`
-
-## Development
-
-`ash
-go build ./cmd/plugin
-go test ./...
-`
-
-## Configuration Example
-
-`yaml
+```yaml
 plugins:
   - name: condition-generic
-    type: condition
-    config:
-      require_branch: main
-      require_clean_worktree: true
-      environment_flag: CI
-`
+    path: ~/.semrel/plugins/semrel-plugin-condition-generic
+    env:
+      SEMREL_PLUGIN_COMMAND: "test -f .github/workflows/release.yml"
+```
 
-## Status
+## `SEMREL_PLUGIN_*` variables
 
-This repository is bootstrapped from SemRels/plugin-template and is ready for implementation.
+| Name | Required | Description | Default |
+| --- | --- | --- | --- |
+| `SEMREL_PLUGIN_COMMAND` | Required | Shell command that must exit with status 0 for the condition to pass. | None |
+
+## `SEMREL_*` release context used
+
+This plugin does not consume any `SEMREL_*` release context variables directly.
+
+## Example behavior
+
+Semrel executes the configured command before releasing. If the command exits with 0 the pipeline continues; otherwise the release is blocked.
+
+## License
+
+Apache-2.0
