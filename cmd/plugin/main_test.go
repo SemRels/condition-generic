@@ -14,7 +14,7 @@ func TestRun_Success(t *testing.T) {
 
 	var stderr bytes.Buffer
 	code := run(env(map[string]string{}), &stderr)
-	if code != 0 || stderr.Len() != 0 {
+	if code != 0 || stderr.String() != "plugin_schema_version=1\n" {
 		t.Fatalf("unexpected result: code=%d stderr=%q", code, stderr.String())
 	}
 }

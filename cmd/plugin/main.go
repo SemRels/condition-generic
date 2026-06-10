@@ -8,7 +8,10 @@ import (
 	plugin "github.com/SemRels/condition-generic/internal/plugin"
 )
 
+const pluginSchemaVersion = 1
+
 func run(getenv func(string) string, stderr io.Writer) int {
+	fmt.Fprintf(stderr, "plugin_schema_version=%d\n", pluginSchemaVersion)
 	c := plugin.NewWithEnv(getenv)
 	if err := c.Check(); err != nil {
 		fmt.Fprintln(stderr, "condition-generic:", err)
