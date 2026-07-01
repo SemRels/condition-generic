@@ -1,6 +1,6 @@
 # condition-generic
 
-[![Latest Release](https://img.shields.io/github/v/release/SemRels/condition-generic?label=version\&color=blue)](https://github.com/SemRels/condition-generic/releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/SemRels/condition-generic?label=version&color=blue)](https://github.com/SemRels/condition-generic/releases/latest)
 
 Runs one or more shell commands and passes only when every configured command exits successfully.
 
