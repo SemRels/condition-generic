@@ -5,6 +5,7 @@ package plugin
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,12 +13,15 @@ import (
 )
 
 type Condition struct {
-	env func(string) string
+	env          func(string) string
+	shellCommand func(string) *exec.Cmd
 }
 
-func New() *Condition { return &Condition{env: os.Getenv} }
+func New() *Condition { return &Condition{env: os.Getenv, shellCommand: shellCommand} }
 
-func NewWithEnv(env func(string) string) *Condition { return &Condition{env: env} }
+func NewWithEnv(env func(string) string) *Condition {
+	return &Condition{env: env, shellCommand: shellCommand}
+}
 
 func (c *Condition) Check() error {
 	if commands := c.env("SEMREL_PLUGIN_COMMAND"); commands != "" {
@@ -27,10 +31,13 @@ func (c *Condition) Check() error {
 				continue
 			}
 
-			cmd := exec.Command("sh", "-c", command)
+			cmd := c.shellCommand(command)
 			var stderr bytes.Buffer
 			cmd.Stderr = &stderr
 			if err := cmd.Run(); err != nil {
+				if errors.Is(err, exec.ErrNotFound) {
+					return fmt.Errorf("command failed: %s: required shell \"sh\" is not available on PATH: %w", command, err)
+				}
 				msg := strings.TrimSpace(stderr.String())
 				if msg != "" {
 					return fmt.Errorf("command failed: %s: %w: %s", command, err, msg)
@@ -54,4 +61,8 @@ func (c *Condition) Check() error {
 	}
 
 	return nil
+}
+
+func shellCommand(command string) *exec.Cmd {
+	return exec.Command("sh", "-c", command)
 }

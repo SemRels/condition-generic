@@ -4,6 +4,9 @@
 package plugin
 
 import (
+	"os/exec"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -22,9 +25,10 @@ func TestCheck_PermissiveWithoutConfig(t *testing.T) {
 
 func TestCheck_CommandSuccess(t *testing.T) {
 	t.Parallel()
+	requirePOSIXShell(t)
 
 	err := NewWithEnv(env(map[string]string{
-		"SEMREL_PLUGIN_COMMAND": "true",
+		"SEMREL_PLUGIN_COMMAND": successfulCommand(),
 	})).Check()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -33,8 +37,9 @@ func TestCheck_CommandSuccess(t *testing.T) {
 
 func TestCheck_CommandFailure(t *testing.T) {
 	t.Parallel()
+	requirePOSIXShell(t)
 
-	command := "printf 'boom\\n' >&2; exit 1"
+	command := failingCommand("boom", 1)
 	err := NewWithEnv(env(map[string]string{
 		"SEMREL_PLUGIN_COMMAND": command,
 	})).Check()
@@ -51,9 +56,10 @@ func TestCheck_CommandFailure(t *testing.T) {
 
 func TestCheck_MultipleCommandsSuccess(t *testing.T) {
 	t.Parallel()
+	requirePOSIXShell(t)
 
 	err := NewWithEnv(env(map[string]string{
-		"SEMREL_PLUGIN_COMMAND": "true\n:",
+		"SEMREL_PLUGIN_COMMAND": successfulCommand() + "\n" + successfulCommand(),
 	})).Check()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -62,10 +68,11 @@ func TestCheck_MultipleCommandsSuccess(t *testing.T) {
 
 func TestCheck_MultipleCommandsFailureStopsAtFailingCommand(t *testing.T) {
 	t.Parallel()
+	requirePOSIXShell(t)
 
-	failing := "printf 'stop\\n' >&2; exit 2"
+	failing := failingCommand("stop", 2)
 	err := NewWithEnv(env(map[string]string{
-		"SEMREL_PLUGIN_COMMAND": "true\n" + failing + "\ntrue",
+		"SEMREL_PLUGIN_COMMAND": successfulCommand() + "\n" + failing + "\n" + successfulCommand(),
 	})).Check()
 	if err == nil {
 		t.Fatal("expected command failure")
@@ -80,9 +87,10 @@ func TestCheck_MultipleCommandsFailureStopsAtFailingCommand(t *testing.T) {
 
 func TestCheck_CommandSkipsEmptyLines(t *testing.T) {
 	t.Parallel()
+	requirePOSIXShell(t)
 
 	err := NewWithEnv(env(map[string]string{
-		"SEMREL_PLUGIN_COMMAND": "  \n\ntrue\n \t\n:",
+		"SEMREL_PLUGIN_COMMAND": "  \n\n" + successfulCommand() + "\n \t\n" + successfulCommand(),
 	})).Check()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -91,15 +99,51 @@ func TestCheck_CommandSkipsEmptyLines(t *testing.T) {
 
 func TestCheck_CommandTakesPriorityOverEnvVarCheck(t *testing.T) {
 	t.Parallel()
+	requirePOSIXShell(t)
 
 	err := NewWithEnv(env(map[string]string{
-		"SEMREL_PLUGIN_COMMAND":   "true",
+		"SEMREL_PLUGIN_COMMAND":   successfulCommand(),
 		"SEMREL_PLUGIN_ENV_VAR":   "CI",
 		"SEMREL_PLUGIN_ENV_VALUE": "true",
 		"CI":                      "false",
 	})).Check()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func successfulCommand() string {
+	return "true"
+}
+
+func failingCommand(message string, exitCode int) string {
+	return "printf '" + message + "\\n' >&2; exit " + strconv.Itoa(exitCode)
+}
+
+func requirePOSIXShell(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skip("sh is unavailable on this host")
+	}
+}
+
+func TestShellCommandUsesPOSIXShell(t *testing.T) {
+	cmd := shellCommand("printf ok")
+	if got, want := cmd.Args, []string{"sh", "-c", "printf ok"}; !slices.Equal(got, want) {
+		t.Fatalf("shell command args = %q, want %q", got, want)
+	}
+}
+
+func TestCheckReportsMissingPOSIXShell(t *testing.T) {
+	condition := &Condition{
+		env: env(map[string]string{"SEMREL_PLUGIN_COMMAND": "true"}),
+		shellCommand: func(string) *exec.Cmd {
+			return exec.Command("semrel-missing-sh")
+		},
+	}
+	err := condition.Check()
+	if err == nil || !strings.Contains(err.Error(), `required shell "sh" is not available on PATH`) {
+		t.Fatalf("expected actionable missing sh error, got %v", err)
 	}
 }
 

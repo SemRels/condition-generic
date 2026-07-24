@@ -14,7 +14,7 @@ func run(getenv func(string) string, stderr io.Writer) int {
 	_, _ = fmt.Fprintf(stderr, "plugin_schema_version=%d\n", pluginSchemaVersion)
 	c := plugin.NewWithEnv(getenv)
 	if err := c.Check(); err != nil {
-		fmt.Fprintln(stderr, "condition-generic:", err)
+		_, _ = fmt.Fprintln(stderr, "condition-generic:", err)
 		return 1
 	}
 	return 0
