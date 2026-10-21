@@ -1,6 +1,10 @@
 # condition-generic
 
 [![Latest Release](https://img.shields.io/github/v/release/SemRels/condition-generic?label=version&color=blue)](https://github.com/SemRels/condition-generic/releases/latest)
+[![CI](https://github.com/SemRels/condition-generic/actions/workflows/ci.yml/badge.svg)](https://github.com/SemRels/condition-generic/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/SemRels/condition-generic)](LICENSE)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/SemRels/condition-generic/badge)](https://scorecard.dev/viewer/?uri=github.com/SemRels/condition-generic)
+[![REUSE status](https://api.reuse.software/badge/github.com/SemRels/condition-generic)](https://api.reuse.software/info/github.com/SemRels/condition-generic)
 
 Runs one or more shell commands and passes only when every configured command exits successfully.
 
