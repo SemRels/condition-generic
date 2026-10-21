@@ -39,21 +39,23 @@ cosign verify ghcr.io/semrels/condition-generic:latest \
 
 ```yaml
 plugins:
-  - name: condition-generic
-    path: ~/.semrel/plugins/semrel-plugin-condition-generic
-    env:
-      SEMREL_PLUGIN_COMMAND: |
+  - uses: "@semrel/condition-generic"
+    phase: condition
+    args:
+      command: |
         test -f .github/workflows/container.yml
         git diff --quiet HEAD
 ```
 
-## `SEMREL_PLUGIN_*` variables
+## Options
 
-| Name | Required | Description | Default |
-| --- | --- | --- | --- |
-| `SEMREL_PLUGIN_COMMAND` | Primary, required if not using env-var mode | One or more newline-separated shell commands. Each non-empty line is executed independently via `sh -c`, and all commands must exit with status 0 for the condition to pass. | None |
-| `SEMREL_PLUGIN_ENV_VAR` | Legacy, optional | Environment variable name to compare for backward-compatible equality checks. Used only when `SEMREL_PLUGIN_COMMAND` is not set. | None |
-| `SEMREL_PLUGIN_ENV_VALUE` | Legacy, optional | Expected value for `SEMREL_PLUGIN_ENV_VAR`. Used only when `SEMREL_PLUGIN_COMMAND` is not set. | Empty string |
+Every option can be set as an entry under `args` in `.semrel.yaml`. semrel passes each entry to the plugin as the environment variable shown in the table, so you can also set that variable directly (for example in your CI environment) instead of using `args`.
+
+| Argument | Environment variable | Required | Description | Default |
+| --- | --- | --- | --- | --- |
+| `command` | `SEMREL_PLUGIN_COMMAND` | Primary, required if not using env-var mode | One or more newline-separated shell commands. Each non-empty line is executed independently via `sh -c`, and all commands must exit with status 0 for the condition to pass. | None |
+| `env_var` | `SEMREL_PLUGIN_ENV_VAR` | Legacy, optional | Environment variable name to compare for backward-compatible equality checks. Used only when `SEMREL_PLUGIN_COMMAND` is not set. | None |
+| `env_value` | `SEMREL_PLUGIN_ENV_VALUE` | Legacy, optional | Expected value for `SEMREL_PLUGIN_ENV_VAR`. Used only when `SEMREL_PLUGIN_COMMAND` is not set. | Empty string |
 
 ## `SEMREL_*` release context used
 
