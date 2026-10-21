@@ -26,7 +26,7 @@ Images are signed with [cosign](https://github.com/sigstore/cosign) and include 
 
 ```bash
 cosign verify ghcr.io/semrels/condition-generic:latest \
-  --certificate-identity-regexp 'https://github.com/SemRels/condition-generic/.github/workflows/release.yml.*' \
+  --certificate-identity-regexp 'https://github.com/SemRels/condition-generic/.github/workflows/container.yml.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
@@ -39,7 +39,7 @@ plugins:
     path: ~/.semrel/plugins/semrel-plugin-condition-generic
     env:
       SEMREL_PLUGIN_COMMAND: |
-        test -f .github/workflows/release.yml
+        test -f .github/workflows/container.yml
         git diff --quiet HEAD
 ```
 
