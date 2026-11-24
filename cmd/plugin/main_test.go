@@ -6,6 +6,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -38,21 +40,59 @@ func TestRun_Failure(t *testing.T) {
 	}
 }
 
-func TestRun_DryRunPrintsDecisionAndReason(t *testing.T) {
+func TestRun_DryRunCommandIsNotEvaluated(t *testing.T) {
 	t.Parallel()
 
+	marker := filepath.Join(t.TempDir(), "executed")
+	command := "touch '" + strings.ReplaceAll(marker, "'", "'\\''") + "'; exit 1 # private-command"
 	var stdout, stderr bytes.Buffer
 	code := runWithStdout(env(map[string]string{
 		"SEMREL_DRY_RUN":        "true",
-		"SEMREL_PLUGIN_COMMAND": "exit 1",
+		"SEMREL_PLUGIN_COMMAND": command,
 	}), &stdout, &stderr)
 	if code != 0 {
 		t.Fatalf("expected exit code 0 in dry-run, got %d", code)
 	}
-	if !strings.Contains(stdout.String(), "decision: allow") || !strings.Contains(stdout.String(), "would run command: exit 1") {
+	if !strings.Contains(stdout.String(), "decision: unknown\n") || !strings.Contains(stdout.String(), "command not evaluated") {
 		t.Fatalf("unexpected stdout: %q", stdout.String())
 	}
-	if !strings.Contains(stderr.String(), "[dry-run] condition-generic: decision=allow") {
+	if !strings.Contains(stderr.String(), "[dry-run] condition-generic: decision=unknown") {
 		t.Fatalf("unexpected stderr: %q", stderr.String())
+	}
+	if strings.Contains(stdout.String()+stderr.String(), "private-command") {
+		t.Fatal("dry-run output exposed command contents")
+	}
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatalf("command executed or marker could not be checked: %v", err)
+	}
+}
+
+func TestRun_DryRunEvaluatedConditions(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		config   map[string]string
+		decision string
+	}{
+		{"no condition", map[string]string{}, "allow"},
+		{"matching environment", map[string]string{"SEMREL_PLUGIN_ENV_VAR": "EXAMPLE", "SEMREL_PLUGIN_ENV_VALUE": "expected", "EXAMPLE": "expected"}, "allow"},
+		{"mismatched environment", map[string]string{"SEMREL_PLUGIN_ENV_VAR": "EXAMPLE", "SEMREL_PLUGIN_ENV_VALUE": "private-expected", "EXAMPLE": "private-actual"}, "block"},
+		{"empty commands take precedence", map[string]string{"SEMREL_PLUGIN_COMMAND": " \n ", "SEMREL_PLUGIN_ENV_VAR": "EXAMPLE", "SEMREL_PLUGIN_ENV_VALUE": "expected"}, "allow"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.config["SEMREL_DRY_RUN"] = "true"
+			var stdout, stderr bytes.Buffer
+			if code := runWithStdout(env(tt.config), &stdout, &stderr); code != 0 {
+				t.Fatalf("expected exit code 0 in dry-run, got %d", code)
+			}
+			if !strings.Contains(stdout.String(), "decision: "+tt.decision+"\n") {
+				t.Fatalf("unexpected stdout: %q", stdout.String())
+			}
+			if strings.Contains(stdout.String()+stderr.String(), "private-") {
+				t.Fatal("dry-run output exposed environment values")
+			}
+		})
 	}
 }

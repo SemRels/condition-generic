@@ -25,16 +25,19 @@ func runWithStdout(getenv func(string) string, stdout, stderr io.Writer) int {
 	err := c.Check()
 	if getenv("SEMREL_DRY_RUN") == "true" {
 		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "[dry-run] condition-generic: decision=block (%v)\n", err)
-			_, _ = fmt.Fprintf(stdout, "decision: block\nreason: %v\n", err)
+			const reason = "environment variable does not match expected value"
+			_, _ = fmt.Fprintf(stderr, "[dry-run] condition-generic: decision=block (%s)\n", reason)
+			_, _ = fmt.Fprintf(stdout, "decision: block\nreason: %s\n", reason)
 			return 0
 		}
 		reason := "generic condition passed"
-		if cmd := strings.TrimSpace(getenv("SEMREL_PLUGIN_COMMAND")); cmd != "" {
-			reason = fmt.Sprintf("would run command: %s", strings.ReplaceAll(cmd, "\n", "; "))
+		decision := "allow"
+		if strings.TrimSpace(getenv("SEMREL_PLUGIN_COMMAND")) != "" {
+			decision = "unknown"
+			reason = "command not evaluated in dry-run"
 		}
-		_, _ = fmt.Fprintf(stderr, "[dry-run] condition-generic: decision=allow (%s)\n", reason)
-		_, _ = fmt.Fprintf(stdout, "decision: allow\nreason: %s\n", reason)
+		_, _ = fmt.Fprintf(stderr, "[dry-run] condition-generic: decision=%s (%s)\n", decision, reason)
+		_, _ = fmt.Fprintf(stdout, "decision: %s\nreason: %s\n", decision, reason)
 		return 0
 	}
 	if err != nil {
