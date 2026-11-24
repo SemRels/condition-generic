@@ -1,6 +1,10 @@
 # condition-generic
 
 [![Latest Release](https://img.shields.io/github/v/release/SemRels/condition-generic?label=version&color=blue)](https://github.com/SemRels/condition-generic/releases/latest)
+[![CI](https://github.com/SemRels/condition-generic/actions/workflows/ci.yml/badge.svg)](https://github.com/SemRels/condition-generic/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/SemRels/condition-generic)](LICENSE)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/SemRels/condition-generic/badge)](https://scorecard.dev/viewer/?uri=github.com/SemRels/condition-generic)
+[![REUSE status](https://api.reuse.software/badge/github.com/SemRels/condition-generic)](https://api.reuse.software/info/github.com/SemRels/condition-generic)
 
 Runs one or more shell commands and passes only when every configured command exits successfully.
 
@@ -26,7 +30,7 @@ Images are signed with [cosign](https://github.com/sigstore/cosign) and include 
 
 ```bash
 cosign verify ghcr.io/semrels/condition-generic:latest \
-  --certificate-identity-regexp 'https://github.com/SemRels/condition-generic/.github/workflows/release.yml.*' \
+  --certificate-identity-regexp 'https://github.com/SemRels/condition-generic/.github/workflows/container.yml.*' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
 
@@ -35,21 +39,23 @@ cosign verify ghcr.io/semrels/condition-generic:latest \
 
 ```yaml
 plugins:
-  - name: condition-generic
-    path: ~/.semrel/plugins/semrel-plugin-condition-generic
-    env:
-      SEMREL_PLUGIN_COMMAND: |
-        test -f .github/workflows/release.yml
+  - uses: "@semrel/condition-generic"
+    phase: condition
+    args:
+      command: |
+        test -f .github/workflows/container.yml
         git diff --quiet HEAD
 ```
 
-## `SEMREL_PLUGIN_*` variables
+## Options
 
-| Name | Required | Description | Default |
-| --- | --- | --- | --- |
-| `SEMREL_PLUGIN_COMMAND` | Primary, required if not using env-var mode | One or more newline-separated shell commands. Each non-empty line is executed independently via `sh -c`, and all commands must exit with status 0 for the condition to pass. | None |
-| `SEMREL_PLUGIN_ENV_VAR` | Legacy, optional | Environment variable name to compare for backward-compatible equality checks. Used only when `SEMREL_PLUGIN_COMMAND` is not set. | None |
-| `SEMREL_PLUGIN_ENV_VALUE` | Legacy, optional | Expected value for `SEMREL_PLUGIN_ENV_VAR`. Used only when `SEMREL_PLUGIN_COMMAND` is not set. | Empty string |
+Every option can be set as an entry under `args` in `.semrel.yaml`. semrel passes each entry to the plugin as the environment variable shown in the table, so you can also set that variable directly (for example in your CI environment) instead of using `args`.
+
+| Argument | Environment variable | Required | Description | Default |
+| --- | --- | --- | --- | --- |
+| `command` | `SEMREL_PLUGIN_COMMAND` | Primary, required if not using env-var mode | One or more newline-separated shell commands. Each non-empty line is executed independently via `sh -c`, and all commands must exit with status 0 for the condition to pass. | None |
+| `env_var` | `SEMREL_PLUGIN_ENV_VAR` | Legacy, optional | Environment variable name to compare for backward-compatible equality checks. Used only when `SEMREL_PLUGIN_COMMAND` is not set. | None |
+| `env_value` | `SEMREL_PLUGIN_ENV_VALUE` | Legacy, optional | Expected value for `SEMREL_PLUGIN_ENV_VAR`. Used only when `SEMREL_PLUGIN_COMMAND` is not set. | Empty string |
 
 ## `SEMREL_*` release context used
 
